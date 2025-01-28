@@ -42,3 +42,12 @@ class SignupForm(forms.Form):
             raise ValidationError({"c_password": "Passwords do not match."})
 
         return cleaned_data
+    
+
+
+class ContactForm(forms.Form):
+    name = forms.CharField(max_length=100, required=True, label="Full Name", widget=forms.TextInput(attrs={'class': 'form-control form-control_gray'}))
+    email = forms.EmailField(required=True, label="Email Address", widget=forms.TextInput(attrs={'class': 'form-control form-control_gray'}))
+    mobile = forms.CharField(max_length=15, required=True, label="Mobile Number", widget=forms.TextInput(attrs={'class': 'form-control form-control_gray'}))
+    message = forms.CharField(max_length=15, required=True, label="Message", widget=forms.Textarea(attrs={'class': 'form-control form-control_gray'}))
+    captcha = ReCaptchaField(widget=ReCaptchaV3(action='signup'))

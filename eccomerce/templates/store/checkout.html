@@ -46,14 +46,14 @@
             <div class="row mt-5">
               <div class="col-md-6">
                 <div class="form-floating my-3">
-                  <input type="text" class="form-control" name="name" required="">
+                  <input type="text" class="form-control" name="name"  value="{{user.name}}" readonly>
                   <label for="name">Full Name *</label>
                   <span class="text-danger"></span>
                 </div>
               </div>
               <div class="col-md-6">
                 <div class="form-floating my-3">
-                  <input type="text" class="form-control" name="phone" required="">
+                  <input type="text" class="form-control" value="{{user.mobile}}" name="phone" readonly>
                   <label for="phone">Phone Number *</label>
                   <span class="text-danger"></span>
                 </div>
@@ -114,41 +114,38 @@
                     </tr>
                   </thead>
                   <tbody>
+                    {% for x in   cartitem %}
                     <tr>
                       <td>
-                        Zessi Dresses x 2
+                       {{x.product.title}}
                       </td>
                       <td align="right">
-                        $32.50
+                       {{x.product.price}}
                       </td>
                     </tr>
-                    <tr>
-                      <td>
-                        Kirby T-Shirt
-                      </td>
-                      <td align="right">
-                        $29.90
-                      </td>
-                    </tr>
+                    {% endfor %}
+                   
+                   
+                 
                   </tbody>
                 </table>
                 <table class="checkout-totals">
                   <tbody>
                     <tr>
                       <th>SUBTOTAL</th>
-                      <td align="right">$62.40</td>
+                      <td align="right">${{totalgst}}</td>
                     </tr>
-                    <tr>
-                      <th>SHIPPING</th>
+                    <!-- <tr>
+                      <th>SHIPPING </th>
                       <td align="right">Free shipping</td>
                     </tr>
                     <tr>
                       <th>VAT</th>
                       <td align="right">$19</td>
-                    </tr>
+                    </tr> -->
                     <tr>
                       <th>TOTAL</th>
-                      <td align="right">$81.40</td>
+                      <td align="right">${{totalsum}}</td>
                     </tr>
                   </tbody>
                 </table>

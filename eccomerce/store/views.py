@@ -27,21 +27,33 @@ def user_login(request):
             user = authenticate(request, username=email, password=password)
             
             if user is not None  and user.is_active == True:
-                try:
-                    print('okkk')
-                    
-                    carts = Cart.objects.get(cart_id=cart_sessions(request))
-                    print('carts=================', carts)
-                    cart_exists = CartItem.objects.filter(cart=carts).exists()
-                    if cart_exists:
-                        cart_items = CartItem.objects.filter(cart=carts)
-                        for item in cart_items:
-                            item.user = user
-                            item.save()
-                except Exception as a:
-                     print(a)
-                login(request, user)
-                return redirect('store:all_products')
+             
+                    try:
+                         carts = Cart.objects.all()
+                         try:
+                                car=CartItem.objects.get(user=user,cart_id__in=[x.id for x in carts])
+                                # c1=Cart.objects.all()
+                                # c2=CartItem.objects.filter(cart)
+                                print('car',car)
+                         except CartItem.DoesNotExist:
+                                carts = Cart.objects.get(cart_id=cart_sessions(request))
+                                cart_exists = CartItem.objects.filter(cart=carts).exists()
+                                if cart_exists:
+                                    cart_items = CartItem.objects.filter(cart=carts)
+                                    for item in cart_items:
+                                        item.user = user
+                                        item.save()
+                    except CartItem.DoesNotExist:
+                            carts = Cart.objects.get(cart_id=cart_sessions(request))
+                            cart_exists = CartItem.objects.filter(cart=carts).exists()
+                            if cart_exists:
+                                cart_items = CartItem.objects.filter(cart=carts)
+                                for item in cart_items:
+                                    item.user = user
+                                    item.save()
+                
+                    login(request, user)
+                    return redirect('store:all_products')
             else:
                 form = LoginForm()
                 return render(request,'store/login.html',{'form':form})
@@ -94,10 +106,18 @@ def category_list(request, category_slug=None):
 def product_detail(request, slug):
     product = get_object_or_404(Product, slug=slug, in_stock=True)
     if request.user.is_authenticated:
-        cartitem=CartItem.objects.get(product_id=product.id,user=request.user)
+        try:
+            cartitem=CartItem.objects.get(product_id=product.id,user=request.user)
+        except CartItem.DoesNotExist:
+            cartitem=None
+
     else:
-         cart=Cart.objects.all()
-         cartitem=CartItem.objects.filter(product_id=product.id,cart_id__in=[x.id for x in cart]).exists()
+         try:
+                cart=Cart.objects.get(cart_id=cart_sessions(request))
+                cartitem=CartItem.objects.filter(product_id=product.id,cart_id=cart).exists()
+         except Cart.DoesNotExist:
+                cart=None
+                cartitem=None
 
     return render(request, 'store/products/detail.html', {'product': product,'cartitem':cartitem})
 
@@ -105,11 +125,24 @@ def about(request):
     return render(request,'store/about.html')
 
 def contact(request):
-    return render(request,'store/contact.html')
+     contact=ContactForm()
+     if request.method == "POST":
+       form = ContactForm(request.POST)
+       if form.is_valid():
+            Contact.objects.create(
+                name=form.cleaned_data['name'],
+                mobile=form.cleaned_data['mobile'],
+                email=form.cleaned_data['email'],
+                description=form.cleaned_data['message']),
+            
+            return redirect('store:contact') 
+    
+     return render(request,'store/contact.html',{'contact':contact})
 
 def cart(request):
     if request.user.is_authenticated:
          carts=Cart.objects.all()
+
          cartitem=CartItem.objects.filter(user=request.user,cart_id__in=[x.id for x in carts])
          print(cartitem)
          totalcart=CartItem.objects.filter(cart_id__in=[x.id for x in carts],user=request.user)
@@ -118,6 +151,7 @@ def cart(request):
          totalgst=totalcartitems.get('product_price') * 18 / 100
          totalsum=totalcartitems.get('product_price')  + totalgst
     else:
+         
          carts=Cart.objects.get(cart_id=cart_sessions(request))
          cartitem=CartItem.objects.filter(cart_id=carts)
          totalcart=CartItem.objects.filter(cart_id=carts)
@@ -128,7 +162,19 @@ def cart(request):
     return render(request,'store/cart.html',{'cartitem':cartitem,'totalcartitems':totalcartitems,'totalsum':totalsum})
 
 def checkout(request):
-    return render(request,'store/checkout.html')
+    user=User.objects.get(email=request.user)
+    carts=Cart.objects.all()
+    cartitem=CartItem.objects.filter(user=request.user,cart_id__in=[x.id for x in carts])
+    print(cartitem)
+    totalcart=CartItem.objects.filter(cart_id__in=[x.id for x in carts],user=request.user)
+    totalcartitems=totalcart.aggregate(product_price=Sum('product__price'))
+         
+    totalgst=totalcartitems.get('product_price') * 18 / 100
+    totalsum=totalcartitems.get('product_price')  + totalgst
+
+    if request.method == "POST":
+         pass
+    return render(request,'store/checkout.html',{'user':user,'cartitem':cartitem,'totalcartitems':totalcartitems,'totalsum':totalsum,'totalgst':totalgst})
 
 
 

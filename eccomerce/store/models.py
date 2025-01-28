@@ -155,3 +155,15 @@ class CartItem(models.Model):
 
     def __str__(self):
         return str(self.cart)
+    
+
+
+class Contact(models.Model):
+    name = models.CharField(max_length=80,null=True,blank=True ,db_index=True)
+    email = models.EmailField(max_length=80,null=True,blank=True ,db_index=True)
+    mobile = models.IntegerField(null=True,blank=True ,db_index=True)
+    description = models.TextField(null=True,blank=True ,db_index=True)
+    created_at=models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return str(self.name)

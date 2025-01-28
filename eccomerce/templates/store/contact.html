@@ -23,24 +23,27 @@
             {% csrf_token %}
             <h3 class="mb-5">Get In Touch</h3>
             <div class="form-floating my-4">
-              <input type="text" class="form-control" name="name" placeholder="Name *" required="">
+              {{contact.name}}
               <label for="contact_us_name">Name *</label>
               <span class="text-danger"></span>
             </div>
             <div class="form-floating my-4">
-              <input type="text" class="form-control" name="phone" placeholder="Phone *" required="">
+              {{contact.mobile}}
               <label for="contact_us_name">Phone *</label>
               <span class="text-danger"></span>
             </div>
             <div class="form-floating my-4">
-              <input type="email" class="form-control" name="email" placeholder="Email address *" required="">
+              {{contact.email}}
               <label for="contact_us_name">Email address *</label>
               <span class="text-danger"></span>
             </div>
             <div class="my-4">
-              <textarea class="form-control form-control_gray" name="comment" placeholder="Your Message" cols="30"
-                rows="8" required=""></textarea>
+              {{contact.message}}
               <span class="text-danger"></span>
+            </div>
+            <div class="my-4">
+              {{contact.captcha}}
+            
             </div>
             <div class="my-4">
               <button type="submit" class="btn btn-primary">Submit</button>
