@@ -32,7 +32,7 @@
           </span>
         </a>
       </div>
-      <form name="checkout-form" action="https://uomo-html.flexkitux.com/Demo3/shop_order_complete.html">
+    
         <div class="checkout-form">
           <div class="billing-info__wrapper">
             <div class="row">
@@ -145,12 +145,13 @@
                     </tr> -->
                     <tr>
                       <th>TOTAL</th>
-                      <td align="right">${{totalsum}}</td>
+                      <td align="right">${{totalsum}} <input type="hidden" value="{{totalsum}}" id="total_price"></td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-              <div class="checkout__payment-methods">
+              <input type="hidden" name="csrfmiddlewaretoken" value="{{csrf_token}}">
+              <!-- <div class="checkout__payment-methods">
                 <div class="form-check">
                   <input class="form-check-input form-check-input_fill" type="radio" name="checkout_payment_method"
                     id="checkout_payment_method_1" checked>
@@ -203,13 +204,88 @@
                   website, and for other purposes described in our <a href="terms.html" target="_blank">privacy
                     policy</a>.
                 </div>
-              </div>
-              <button class="btn btn-primary btn-checkout">PLACE ORDER</button>
+              </div> -->
+              <input type="hidden" id="emails" value="{{request.user.email}}">
+              <button class="btn btn-primary " id="checkout" type="submit">PLACE ORDER1</button>
             </div>
           </div>
         </div>
-      </form>
+      
     </section>
   </main>
 
+
+
+  <!-- payment getway  !-->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+{% if request.user.is_authenticated %}
+
+  
+
+<script>
+  $(document).ready(function () {
+    $('#checkout').click(function (e) {
+      
+      e.preventDefault();
+      
+      email = $('#emails').val()
+      
+      
+      total_price = $('#total_price').val()
+      alert(email)
+    
+      token = $('input[name=csrfmiddlewaretoken]').val()
+      
+      
+
+      $.ajax({
+        method: "POST",
+        url: "{% url 'store:order' %}",
+        data: {
+         
+          email: email,
+          amount:total_price,
+          csrfmiddlewaretoken: token,
+        },
+        datatype: "dataType",
+        success: function (response) {
+          //alert(response.msg)
+          //alert(response.rozarpaykey)
+          var options = {
+            key: "{{rozarpay_key}}", // Enter the Key ID generated from the Dashboard
+            amount: parseInt("{{total_price}}"), // Amount is in currency subunits. Default currency is INR. Hence, 50000 refers to 50000 paise
+            currency: "{{currency}}",
+          
+            order_id: "{{ razorpay_order_id }}",
+            "callback_url": "{{base_url}}/{{callback_url}}",
+            "handler": function (response) {
+              alert(response)
+
+            },
+
+            "prefill": {
+              "name": "geeky code",
+              "email": "geekycode@gmail.com",
+
+            },
+
+            "theme": {
+              "color": "#3399cc"
+            }
+          };
+          var rzp1 = new Razorpay(options);
+          rzp1.open();
+
+        }
+      });
+
+
+    });
+
+
+  });
+  </script>
+  {% endif %}
 {% endblock %}

@@ -1,11 +1,18 @@
 from django.shortcuts import get_object_or_404, render,redirect
 from django.contrib.auth import authenticate, login, logout
+import razorpay
 from django.contrib import messages 
 from .models import *
 from .forms import *
 from django.contrib.auth.hashers import make_password
 from django.http import JsonResponse
 from django.db.models import Sum
+from django.views.decorators.csrf import csrf_exempt
+from django.http import HttpResponse
+from django.conf import settings
+from razorpay.errors import BadRequestError
+razorpay_client = razorpay.Client(
+    auth=(settings.ROZARPAY_KEY, settings.RAZOR_KEY_SECRET))
 
 def cart_sessions(request):
     carts=request.session.session_key 
@@ -140,6 +147,8 @@ def contact(request):
      return render(request,'store/contact.html',{'contact':contact})
 
 def cart(request):
+    rozarpay_key="rzp_test_7UQe0QqyW56WC6"
+
     if request.user.is_authenticated:
          carts=Cart.objects.all()
 
@@ -151,31 +160,70 @@ def cart(request):
          totalgst=totalcartitems.get('product_price') * 18 / 100
          totalsum=totalcartitems.get('product_price')  + totalgst
     else:
+         pass
          
-         carts=Cart.objects.get(cart_id=cart_sessions(request))
-         cartitem=CartItem.objects.filter(cart_id=carts)
-         totalcart=CartItem.objects.filter(cart_id=carts)
-         totalcartitems=totalcart.aggregate(product_price=Sum('product__price'))
+        #  carts=Cart.objects.get(cart_id=cart_sessions(request))
+        #  cartitem=CartItem.objects.filter(cart_id=carts)
+        #  totalcart=CartItem.objects.filter(cart_id=carts)
+        #  totalcartitems=totalcart.aggregate(product_price=Sum('product__price'))
          
-         totalgst=totalcartitems.get('product_price') * 18 / 100
-         totalsum=totalcartitems.get('product_price')  + totalgst
-    return render(request,'store/cart.html',{'cartitem':cartitem,'totalcartitems':totalcartitems,'totalsum':totalsum})
+        #  totalgst=totalcartitems.get('product_price') * 18 / 100
+        #  totalsum=totalcartitems.get('product_price')  + totalgst
+    currency="INR"
+    try:
+                razorpay_order = razorpay_client.order.create(dict(amount=totalsum*100, currency=currency,payment_capture='0'))
+                print('razorpay_order',razorpay_order)
+    except BadRequestError as e:
+                amount=1.00
+                razorpay_order = razorpay_client.order.create(dict( amount=int(amount * 100),   currency='INR', payment_capture='0'))
+    razorpay_order_id = razorpay_order['id']
+    request.session['razorpay_order_id'] = razorpay_order_id
+    rozarpay_key=settings.ROZARPAY_KEY
+    return render(request,'store/cart.html',{'razorpay_order_id':razorpay_order_id,'rozarpay_key':rozarpay_key,'razorpay_order':razorpay_order,'rozarpay_key':rozarpay_key,'cartitem':cartitem,'totalcartitems':totalcartitems,'totalsum':totalsum})
 
 def checkout(request):
-    user=User.objects.get(email=request.user)
-    carts=Cart.objects.all()
-    cartitem=CartItem.objects.filter(user=request.user,cart_id__in=[x.id for x in carts])
-    print(cartitem)
-    totalcart=CartItem.objects.filter(cart_id__in=[x.id for x in carts],user=request.user)
-    totalcartitems=totalcart.aggregate(product_price=Sum('product__price'))
-         
-    totalgst=totalcartitems.get('product_price') * 18 / 100
-    totalsum=totalcartitems.get('product_price')  + totalgst
+    if request.user.is_authenticated:
+            rozarpay_key="rzp_test_7UQe0QqyW56WC6"
+            currency='INR'
+            base_url="http://127.0.0.1:8000"
+            callback_url = 'orderreceived/'
+            user=User.objects.get(email=request.user)
+            carts=Cart.objects.all()
+            cartitem=CartItem.objects.filter(user=request.user,cart_id__in=[x.id for x in carts])
+          
+            totalcart=CartItem.objects.filter(cart_id__in=[x.id for x in carts],user=request.user)
+            totalcartitems=totalcart.aggregate(product_price=Sum('product__price'))
+                
+            totalgst=totalcartitems.get('product_price') * 18 / 100
+            totalsum=totalcartitems.get('product_price')  + totalgst
 
-    if request.method == "POST":
-         pass
-    return render(request,'store/checkout.html',{'user':user,'cartitem':cartitem,'totalcartitems':totalcartitems,'totalsum':totalsum,'totalgst':totalgst})
-
+  
+    # else:
+    #         rozarpay_key="rzp_test_7UQe0QqyW56WC6"
+    #         currency='INR'
+    #         base_url="http://127.0.0.1:8000"
+    #         callback_url = 'orderreceived/'
+    #         user=User.objects.get(email=request.user)
+    #         carts=Cart.objects.all()
+    #         cartitem=CartItem.objects.filter(user=request.user,cart_id__in=[x.id for x in carts])
+    #         print(cartitem)
+    #         totalcart=CartItem.objects.filter(cart_id__in=[x.id for x in carts],user=request.user)
+    #         totalcartitems=totalcart.aggregate(product_price=Sum('product__price'))
+                
+    #         totalgst=totalcartitems.get('product_price') * 18 / 100
+    #         totalsum=totalcartitems.get('product_price')  + totalgst
+    currency="INR"
+    try:
+                razorpay_order = razorpay_client.order.create(dict(amount=totalsum*100, currency=currency,payment_capture='0'))
+                print('razorpay_order',razorpay_order)
+    except BadRequestError as e:
+                amount=1.00
+                razorpay_order = razorpay_client.order.create(dict( amount=int(amount * 100),   currency='INR', payment_capture='0'))
+    razorpay_order_id = razorpay_order['id']
+    request.session['razorpay_order_id'] = razorpay_order_id
+    rozarpay_key=settings.ROZARPAY_KEY
+    
+    return render(request,'store/checkout.html',{'razorpay_order_id':razorpay_order_id,'rozarpay_key':rozarpay_key,"base_url":base_url,"callback_url":callback_url,'currency':currency,'rozarpay_key':rozarpay_key,'user':user,'cartitem':cartitem,'totalcartitems':totalcartitems,'totalsum':totalsum,'totalgst':totalgst})
 
 
 def order_confirmation(request):
@@ -207,3 +255,52 @@ def addcart(request):
                         CartItem.objects.create(product_id=product_id,cart=carts,price=prod.price)
                             
             return JsonResponse({'msg':'Add to cart'})
+      
+def order(request):
+     return JsonResponse({'msg':'okk'})
+
+@csrf_exempt
+def rozarpayverify(request):
+     if request.method == "POST":
+      payment_id = request.POST.get('razorpay_payment_id', '')
+      razorpay_order_id = request.POST.get('razorpay_order_id', '')
+      signature = request.POST.get('razorpay_signature', '')
+      email=request.POST.get('email','')
+      
+      amount=request.POST.get('amount')
+     
+      try:
+          params_dict = {  'razorpay_order_id': razorpay_order_id,  'razorpay_payment_id': payment_id,  'razorpay_signature': signature  }
+          result = razorpay_client.utility.verify_payment_signature( params_dict)
+      except Exception as e:
+              print(e)
+              return redirect('store:home')
+      if result is not None:
+           print(email,'============================================')
+           return redirect('store:order_confirmation')
+
+      
+    #   if result is not None:
+    #      allorders=Order.objects.create(order_id=razorpay_order_id,user=email,payment_id=payment_id,status='approved',total_price=amount)
+    #      carts=CartItem.objects.filter(user__email=allorders.user.email).first()
+    #      cart = Cart.objects.get(cart_id=carts.cart)
+    #      cart.delete()
+
+    #      total_amount=int(sum(i.total_price for i in allorders))
+    #      amount_gst=total_amount*18/100
+    #      amount=int(total_amount+amount_gst)
+    #      print('amount',amount)
+         
+         
+    #  try:
+    #        am=razorpay_client.payment.capture(payment_id, amount*100)
+    #        print('am777',am['method'])
+    #        method=am['method']
+    #     #    Util.orderpurchesemail(request,orders,method)
+    #        return redirect('user_dashboard')
+    #  except Exception as e:
+    #                 print(e)
+    #                 return render(request, 'webapp/paymentfail.html')
+      
+
+  

@@ -17,6 +17,9 @@ urlpatterns = [
     path('checkout/',views.checkout,name='checkout'),
     path('order-confirmation/',views.order_confirmation,name='order_confirmation'),
     path('add_cart/',views.addcart,name='addcart'),
+    path('order/',views.order,name='order'),
+    path('orderreceived/',views.rozarpayverify,name="orderreceived"),
+   
 
 
 ]
