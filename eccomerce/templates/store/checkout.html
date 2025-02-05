@@ -246,7 +246,8 @@
         data: {
          
           email: email,
-          amount:total_price,
+          amount:parseInt(total_price),
+          order_id: "{{ razorpay_order_id }}",
           csrfmiddlewaretoken: token,
         },
         datatype: "dataType",

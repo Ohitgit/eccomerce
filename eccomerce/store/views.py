@@ -160,26 +160,16 @@ def cart(request):
          totalgst=totalcartitems.get('product_price') * 18 / 100
          totalsum=totalcartitems.get('product_price')  + totalgst
     else:
-         pass
          
-        #  carts=Cart.objects.get(cart_id=cart_sessions(request))
-        #  cartitem=CartItem.objects.filter(cart_id=carts)
-        #  totalcart=CartItem.objects.filter(cart_id=carts)
-        #  totalcartitems=totalcart.aggregate(product_price=Sum('product__price'))
          
-        #  totalgst=totalcartitems.get('product_price') * 18 / 100
-        #  totalsum=totalcartitems.get('product_price')  + totalgst
-    currency="INR"
-    try:
-                razorpay_order = razorpay_client.order.create(dict(amount=totalsum*100, currency=currency,payment_capture='0'))
-                print('razorpay_order',razorpay_order)
-    except BadRequestError as e:
-                amount=1.00
-                razorpay_order = razorpay_client.order.create(dict( amount=int(amount * 100),   currency='INR', payment_capture='0'))
-    razorpay_order_id = razorpay_order['id']
-    request.session['razorpay_order_id'] = razorpay_order_id
-    rozarpay_key=settings.ROZARPAY_KEY
-    return render(request,'store/cart.html',{'razorpay_order_id':razorpay_order_id,'rozarpay_key':rozarpay_key,'razorpay_order':razorpay_order,'rozarpay_key':rozarpay_key,'cartitem':cartitem,'totalcartitems':totalcartitems,'totalsum':totalsum})
+         carts=Cart.objects.get(cart_id=cart_sessions(request))
+         cartitem=CartItem.objects.filter(cart_id=carts)
+         totalcart=CartItem.objects.filter(cart_id=carts)
+         totalcartitems=totalcart.aggregate(product_price=Sum('product__price'))
+         
+         totalgst=totalcartitems.get('product_price') * 18 / 100
+         totalsum=totalcartitems.get('product_price')  + totalgst
+    return render(request,'store/cart.html',{'rozarpay_key':rozarpay_key,'cartitem':cartitem,'totalcartitems':totalcartitems,'totalsum':totalsum})
 
 def checkout(request):
     if request.user.is_authenticated:
@@ -196,8 +186,7 @@ def checkout(request):
                 
             totalgst=totalcartitems.get('product_price') * 18 / 100
             totalsum=totalcartitems.get('product_price')  + totalgst
-
-  
+            amount=int(totalsum)
     # else:
     #         rozarpay_key="rzp_test_7UQe0QqyW56WC6"
     #         currency='INR'
@@ -214,7 +203,7 @@ def checkout(request):
     #         totalsum=totalcartitems.get('product_price')  + totalgst
     currency="INR"
     try:
-                razorpay_order = razorpay_client.order.create(dict(amount=totalsum*100, currency=currency,payment_capture='0'))
+                razorpay_order = razorpay_client.order.create(dict(amount=amount*100, currency=currency,payment_capture='0'))
                 print('razorpay_order',razorpay_order)
     except BadRequestError as e:
                 amount=1.00
@@ -257,17 +246,23 @@ def addcart(request):
             return JsonResponse({'msg':'Add to cart'})
       
 def order(request):
+     email=request.POST.get('email')
+     order_id=request.POST.get('order_id')
+     price=request.POST.get('amount')
+     user1=User.objects.get(email=email)
+     Order.objects.create(order_id=order_id,user=user1,total_price=price)
+
      return JsonResponse({'msg':'okk'})
 
 @csrf_exempt
 def rozarpayverify(request):
      if request.method == "POST":
+        
       payment_id = request.POST.get('razorpay_payment_id', '')
       razorpay_order_id = request.POST.get('razorpay_order_id', '')
+      print('razorpay_order_id',razorpay_order_id)
       signature = request.POST.get('razorpay_signature', '')
-      email=request.POST.get('email','')
-      
-      amount=request.POST.get('amount')
+     
      
       try:
           params_dict = {  'razorpay_order_id': razorpay_order_id,  'razorpay_payment_id': payment_id,  'razorpay_signature': signature  }
@@ -275,32 +270,35 @@ def rozarpayverify(request):
       except Exception as e:
               print(e)
               return redirect('store:home')
-      if result is not None:
-           print(email,'============================================')
-           return redirect('store:order_confirmation')
+    #   if result is not None:
+           
+    #        return redirect('store:order_confirmation')
 
       
-    #   if result is not None:
-    #      allorders=Order.objects.create(order_id=razorpay_order_id,user=email,payment_id=payment_id,status='approved',total_price=amount)
-    #      carts=CartItem.objects.filter(user__email=allorders.user.email).first()
-    #      cart = Cart.objects.get(cart_id=carts.cart)
-    #      cart.delete()
+      if result is not None:
+         allorders=Order.objects.get(order_id=razorpay_order_id)
+         carts=CartItem.objects.filter(user__email=allorders.user.email).first()
+         cart = Cart.objects.get(cart_id=carts.cart)
+         cart.delete()
+        #  allorders1=Order.objects.filter(order_id=razorpay_order_id)
+        #  total_amount=int(sum(i.total_price for i in allorders1))
+        #  amount_gst=total_amount*18/100
+        #  amount=int(total_amount+amount_gst)
+        #  print('amount',amount)
+         
+         
+     try:
+           amount = int(float(allorders.total_price) * 100) 
 
-    #      total_amount=int(sum(i.total_price for i in allorders))
-    #      amount_gst=total_amount*18/100
-    #      amount=int(total_amount+amount_gst)
-    #      print('amount',amount)
-         
-         
-    #  try:
-    #        am=razorpay_client.payment.capture(payment_id, amount*100)
-    #        print('am777',am['method'])
-    #        method=am['method']
-    #     #    Util.orderpurchesemail(request,orders,method)
-    #        return redirect('user_dashboard')
-    #  except Exception as e:
-    #                 print(e)
-    #                 return render(request, 'webapp/paymentfail.html')
+           print("MOUNT===============",amount)
+           am=razorpay_client.payment.capture(payment_id,amount)
+           print('am777',am['method'])
+           method=am['method']
+        #    Util.orderpurchesemail(request,orders,method)
+           return redirect('store:order_confirmation')
+     except Exception as e:
+                    print(e)
+                    return render(request, 'webapp/paymentfail.html')
       
 
   
